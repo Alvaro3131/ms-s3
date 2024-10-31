@@ -5,6 +5,7 @@ import expose.dto.FileDto;
 import expose.dto.FormData;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.core.Response;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -15,6 +16,8 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @ApplicationScoped
 public class AwsS3ServiceImpl extends CommonResource implements AwsS3Service {
@@ -83,5 +86,38 @@ public class AwsS3ServiceImpl extends CommonResource implements AwsS3Service {
         }
         return byteArrayOutputStream.toByteArray();
     }
+
+    @Override
+    public  byte[]  downloadFolderAsZip(String bucketName, String folderName) throws IOException {
+        // Listar objetos en la "carpeta"
+        ListObjectsV2Request listRequest = ListObjectsV2Request.builder()
+                .bucket(bucketName)
+                .prefix(folderName) // El prefijo que representa la carpeta
+                .build();
+
+        ListObjectsV2Response listResponse = s3.listObjectsV2(listRequest);
+
+        // Crear un ByteArrayOutputStream para el ZIP
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        try (ZipOutputStream zipOutputStream = new ZipOutputStream(byteArrayOutputStream)) {
+            for (S3Object s3Object : listResponse.contents()) {
+                String key = s3Object.key();
+                byte[] data = getObject(key, bucketName);
+
+                // Crear una entrada ZIP para cada archivo
+                ZipEntry zipEntry = new ZipEntry(key.substring(folderName.length())); // Quitar el prefijo de la carpeta
+                zipOutputStream.putNextEntry(zipEntry);
+                zipOutputStream.write(data);
+                zipOutputStream.closeEntry();
+            }
+        }
+
+        // Convertir el contenido del ZIP a un array de bytes
+        byte[] zipBytes = byteArrayOutputStream.toByteArray();
+
+        // Devolver el ZIP como respuesta
+        return zipBytes;
+    }
+
 
 }

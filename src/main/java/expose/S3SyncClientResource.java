@@ -61,8 +61,30 @@ public class S3SyncClientResource extends CommonResource {
         response.setFileName(fileName);
 
         return Response.status(Response.Status.OK)
-                .entity(response)
+                .entity(objectBytes)
                 .build();
     }
+    @GET
+    @Path("/download-zip/{bucket}")
+    @Operation(summary = "Download a folder as a ZIP from S3 bucket",
+            description = "Downloads a folder from the specified S3 bucket as a ZIP file.")
+    @APIResponse(responseCode = "200", description = "Folder downloaded successfully as ZIP")
+    @APIResponse(responseCode = "404", description = "Folder not found")
+    @Produces(MediaType.APPLICATION_OCTET_STREAM)
+    public Response downloadFolderAsZip(@PathParam("bucket") String bucket,
+                                        @QueryParam("folderName") String folderName) throws IOException {
+        if (folderName == null || folderName.isEmpty()) {
+            return Response.status(Response.Status.BAD_REQUEST).build();
+        }
+        byte[] objectBytes = service.downloadFolderAsZip(bucket, folderName);
+        FileDto.ResponseFolderDownload response = new FileDto.ResponseFolderDownload();
+        response.setBytes(objectBytes);
+        response.setFolderName(folderName);
+        return Response.status(Response.Status.OK)
+                .entity(objectBytes)
+                .header("Content-Disposition", "attachment; filename=\"" + folderName + ".zip\"")
+                .build();
+    }
+
 
 }

@@ -27,4 +27,11 @@ public class FileDto {
         private byte[] bytes;
         private String fileName;
     }
+    @Getter
+    @Setter
+    @RegisterForReflection
+    public static class ResponseFolderDownload {
+        private byte[] bytes;
+        private String folderName;
+    }
 }
